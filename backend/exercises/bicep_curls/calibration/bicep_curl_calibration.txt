@@ -1,0 +1,6 @@
+{
+    "elbow_angle_top": 174.58426387477186,
+    "elbow_angle_bottom": 0.048267820849729234,
+    "posture_angle_top": 178.9698322333737,
+    "posture_angle_bottom": 148.6945155110719
+}

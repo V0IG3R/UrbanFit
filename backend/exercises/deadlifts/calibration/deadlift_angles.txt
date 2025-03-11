@@ -1,0 +1,6 @@
+{
+    "hip_angle_bottom": 58.366593490096065,
+    "hip_angle_top": 153.93226509896155,
+    "knee_angle_bottom": 94.3960882904174,
+    "knee_angle_top": 164.09094905498233
+}
