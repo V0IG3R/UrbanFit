@@ -1,40 +1,64 @@
 .home-container {
-    text-align: center;
-    padding: 2rem;
+  text-align: center;
+  padding: 2rem;
+}
+
+.button-group {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.back-home,
+.reset-reps {
+  background-color: #ff6600;
+  border: none;
+  color: #000;
+  padding: 1rem 2rem;
+  font-size: 1.2rem;
+  cursor: pointer;
+  border-radius: 5px;
+  transition: transform 0.3s;
+  animation: slideIn 0.5s ease;
+}
+
+.back-home:hover,
+.reset-reps:hover {
+  transform: scale(1.05);
+}
+
+.exercise-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.exercise-button {
+  background-color: #ff6600;
+  border: none;
+  color: #000;
+  padding: 1rem 2rem;
+  font-size: 1.2rem;
+  cursor: pointer;
+  border-radius: 5px;
+  transition: transform 0.3s;
+  animation: slideIn 0.5s ease;
+}
+
+.exercise-button:hover {
+  transform: scale(1.05);
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
   }
-  
-  .exercise-buttons {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 1rem;
-    margin-top: 2rem;
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
-  
-  .exercise-button {
-    background-color: #ff6600;
-    border: none;
-    color: #000;
-    padding: 1rem 2rem;
-    font-size: 1.2rem;
-    cursor: pointer;
-    border-radius: 5px;
-    transition: transform 0.3s;
-    animation: slideIn 0.5s ease;
-  }
-  
-  .exercise-button:hover {
-    transform: scale(1.05);
-  }
-  
-  @keyframes slideIn {
-    from {
-      opacity: 0;
-      transform: translateY(20px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-  
+}
