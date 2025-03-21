@@ -138,14 +138,12 @@ const ExercisePage = () => {
         // Update previous landmarks.
         prevLandmarksRef.current = results.poseLandmarks;
 
-        const BACKEND_URL = "https://urbanfit-ddkt.onrender.com";
-
-        // Send landmark data to backend for rep counting.
-        fetch(`${BACKEND_URL}/landmarks/${exerciseName}`, { // Replace with www.localhost:8000/landmarks/$(exerciseName)
+        fetch(`https://urbanfit-ddkt.onrender.com/landmarks/${exerciseName}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ landmarks: results.poseLandmarks })
         })
+        
           .then((res) => res.json())
           .then((data) => {
             // Preserve original logic: backend should return counter, repState, etc.
