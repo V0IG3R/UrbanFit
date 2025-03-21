@@ -1,25 +1,16 @@
 import React from 'react';
+import '../styles/DisplayScreen.css';
 
 const DisplayScreen = () => {
-  // Set the video stream endpoint from your backend.
-  // Change 'deadlifts' to the desired exercise endpoint if needed.
+  // Update the videoUrl to match your backend or asset path.
   const videoUrl = "http://localhost:8000/video/deadlifts";
 
   return (
-    <div
-      style={{
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        height: "100vh",
-        backgroundColor: "#000",
-      }}
-    >
-      <img
-        src={videoUrl}
-        alt="Live Video Stream"
-        style={{ maxWidth: "100%", maxHeight: "100%" }}
-      />
+    <div className="display-screen">
+      <video autoPlay loop muted className="full-video">
+        <source src={videoUrl} type="video/mp4" />
+        Your browser does not support the video tag.
+      </video>
     </div>
   );
 };

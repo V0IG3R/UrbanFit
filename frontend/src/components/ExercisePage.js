@@ -10,23 +10,30 @@ const ExercisePage = () => {
   const navigate = useNavigate();
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
+  
+  // Original rep counter state.
   const [repData, setRepData] = useState({
     counter: 0,
     stage: 'up',
     feedback: 'N/A',
     lightingStatus: 'N/A'
   });
+  
+  // Workout flow states.
+  const totalSets = 3; // Total number of sets
+  const repsGoal = 10; // Target reps per set
+  const [currentSet, setCurrentSet] = useState(1);
 
-  // Fine-tuning parameters
-  const BRIGHTNESS_THRESHOLD = 80;               // Minimum average brightness (0-255)
-  const CONTROLLED_MOVEMENT_THRESHOLD = 0.03;      // Maximum allowed displacement (normalized) for slow & controlled movement
-  const VISIBILITY_THRESHOLD = 0.5;                // Minimum acceptable visibility for each landmark
-  const REQUIRED_VISIBLE_RATIO = 0.75;             // At least 75% of landmarks must be visible
+  // Fine-tuning parameters.
+  const BRIGHTNESS_THRESHOLD = 80;
+  const CONTROLLED_MOVEMENT_THRESHOLD = 0.03;
+  const VISIBILITY_THRESHOLD = 0.5;
+  const REQUIRED_VISIBLE_RATIO = 0.75;
 
   // Ref to store previous landmarks.
   const prevLandmarksRef = useRef(null);
 
-  // Helper to compute average brightness from the current video frame.
+  // Helper: compute average brightness.
   const getAverageBrightness = (video) => {
     const tempCanvas = document.createElement('canvas');
     tempCanvas.width = video.videoWidth || video.width;
@@ -43,6 +50,16 @@ const ExercisePage = () => {
     }
     return totalBrightness / count;
   };
+
+  // Monitor rep count; when the target is reached, update the set and reset the counter.
+  useEffect(() => {
+    const currentCount = repData.counter || repData.repCount || 0;
+    if (currentCount >= repsGoal) {
+      setCurrentSet(prev => prev + 1);
+      // Reset counter for next set.
+      setRepData(prev => ({ ...prev, counter: 0 }));
+    }
+  }, [repData, repsGoal]);
 
   useEffect(() => {
     // Reset rep data and previous landmarks on mount.
@@ -74,17 +91,16 @@ const ExercisePage = () => {
     
     pose.onResults((results) => {
       if (!canvasRef.current) return;
-      const ctx = canvasRef.current.getContext('2d');
-      ctx.save();
-      ctx.clearRect(0, 0, canvasElement.width, canvasElement.height);
-      ctx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
+      canvasCtx.save();
+      canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+      canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
 
       // Draw pose skeleton.
       if (results.poseLandmarks) {
-        drawConnectors(ctx, results.poseLandmarks, POSE_CONNECTIONS, { color: '#00FF00', lineWidth: 2 });
-        drawLandmarks(ctx, results.poseLandmarks, { color: '#FF0000', lineWidth: 1 });
+        drawConnectors(canvasCtx, results.poseLandmarks, POSE_CONNECTIONS, { color: '#00FF00', lineWidth: 2 });
+        drawLandmarks(canvasCtx, results.poseLandmarks, { color: '#FF0000', lineWidth: 1 });
       }
-      ctx.restore();
+      canvasCtx.restore();
 
       if (results.poseLandmarks) {
         // Check landmark visibility.
@@ -98,7 +114,7 @@ const ExercisePage = () => {
           return;
         }
         
-        // If previous landmarks exist, ensure that every landmark is moving very slowly.
+        // Ensure controlled movement.
         if (prevLandmarksRef.current) {
           const fastMovement = results.poseLandmarks.some((lm, index) => {
             const prevLm = prevLandmarksRef.current[index];
@@ -114,13 +130,12 @@ const ExercisePage = () => {
               ...prev,
               feedback: "Movement too fast. Please move slowly and controlled."
             }));
-            // Update previous landmarks even if movement is fast.
             prevLandmarksRef.current = results.poseLandmarks;
-            return; // Skip sending data to the backend.
+            return; // Skip sending data to backend.
           }
         }
         
-        // Movement is controlled—update previous landmarks.
+        // Update previous landmarks.
         prevLandmarksRef.current = results.poseLandmarks;
 
         // Send landmark data to backend for rep counting.
@@ -131,16 +146,15 @@ const ExercisePage = () => {
         })
           .then((res) => res.json())
           .then((data) => {
+            // Preserve original logic: backend should return counter, repState, etc.
             setRepData(data);
           })
           .catch((err) => console.error(err));
       }
     });
     
-    // Initialize the camera.
     const camera = new Camera(videoRef.current, {
       onFrame: async () => {
-        // Check brightness.
         const brightness = getAverageBrightness(videoRef.current);
         if (brightness < BRIGHTNESS_THRESHOLD) {
           setRepData(prev => ({
@@ -148,8 +162,7 @@ const ExercisePage = () => {
             lightingStatus: "Too Dark",
             feedback: "Lighting is too dark. Please improve your lighting."
           }));
-          const ctx = canvasRef.current.getContext('2d');
-          ctx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+          canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
           return;
         } else {
           setRepData(prev => ({ ...prev, lightingStatus: "Good" }));
@@ -179,16 +192,17 @@ const ExercisePage = () => {
   };
 
   return (
-    <div className="exercise-page">
+    <div className="exercise-page" style={{ backgroundImage: `url(/assets/gifs/${exerciseName}.gif)` }}>
       <header className="exercise-header">
         <h1>{exerciseName.replace("_", " ").toUpperCase()}</h1>
         <button onClick={handleBack} className="back-home">← Back to Home</button>
       </header>
+      
       <div className="video-container">
-        {/* Hidden video element for capturing the camera feed */}
         <video ref={videoRef} style={{ display: 'none' }} />
         <canvas ref={canvasRef} width={640} height={480} />
       </div>
+      
       <div className="stats-container">
         {exerciseName === "deadlifts" ? (
           <>
@@ -224,7 +238,7 @@ const ExercisePage = () => {
               <p>{repData.stage}</p>
             </div>
             <div className="stat-box">
-              <h3>Posture</h3>
+              <h3>Feedback</h3>
               <p>{repData.feedback}</p>
             </div>
             <div className="stat-box">
@@ -233,7 +247,16 @@ const ExercisePage = () => {
             </div>
           </>
         )}
+        <div className="stat-box">
+          <h3>Set</h3>
+          <p>{currentSet} / {totalSets}</p>
+        </div>
+        <div className="stat-box">
+          <h3>Target Reps</h3>
+          <p>{repData.counter || repData.repCount || 0} / {repsGoal}</p>
+        </div>
       </div>
+      
     </div>
   );
 };

@@ -1,0 +1,76 @@
+.setup-exercise-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    background: linear-gradient(135deg, #000, #222);
+    padding: 2rem;
+  }
+  
+  .setup-exercise-card {
+    background: #111;
+    padding: 3rem 4rem;
+    border-radius: 12px;
+    box-shadow: 0 8px 16px rgba(0,0,0,0.7);
+    text-align: center;
+    animation: fadeIn 1s ease;
+  }
+  
+  @keyframes fadeIn {
+    from { opacity: 0; transform: scale(0.9); }
+    to { opacity: 1; transform: scale(1); }
+  }
+  
+  .setup-title {
+    font-family: 'Sulphur Point', cursive;
+    font-size: 3rem;
+    color: #ff6600;
+    margin-bottom: 0.5rem;
+  }
+  
+  .exercise-title {
+    font-family: 'Sulphur Point', cursive;
+    font-size: 2.5rem;
+    color: #fff;
+    margin-bottom: 2rem;
+  }
+  
+  .setup-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+  
+  .setup-label {
+    font-family: 'Urbanist', sans-serif;
+    font-size: 1.5rem;
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .setup-input {
+    width: 100%;
+    padding: 0.75rem;
+    font-size: 1.5rem;
+    border: none;
+    border-radius: 8px;
+    margin-top: 0.5rem;
+  }
+  
+  .setup-button {
+    padding: 1rem 2rem;
+    font-size: 1.8rem;
+    background: #ff6600;
+    border: none;
+    color: #000;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: transform 0.3s ease;
+  }
+  
+  .setup-button:hover {
+    transform: scale(1.05);
+  }
+  
