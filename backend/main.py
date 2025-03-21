@@ -14,7 +14,7 @@ app = FastAPI(title="UrbanFit: Innovative Exercise Analysis API")
 # Enable CORS so that the frontend can make requests to the backend.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, restrict this to your domain.
+    allow_origins=["https://urbanfit2.netlify.app"],  # Or "*" for testing, but restrict for production.
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
