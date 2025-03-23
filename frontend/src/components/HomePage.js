@@ -38,7 +38,7 @@ const exercises = [
     tagline: "Lower body power", 
     path: "squats", 
     gif: "/assets/gifs/squats.gif" 
-  }
+  },
 ];
 
 const HomePage = () => {

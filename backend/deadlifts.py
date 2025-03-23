@@ -1,80 +1,105 @@
-# backend/deadlifts.py
 import numpy as np
-import json
-from state import exercise_state
+import pandas as pd
+import pickle
+import time
+from landmarks import landmarks  # This should be a list of column names matching your model's features
 
-def calculate_angle(a, b, c):
-    """Calculate angle in degrees at point b."""
-    a, b, c = np.array(a), np.array(b), np.array(c)
-    radians = np.arctan2(c[1]-b[1], c[0]-b[0]) - np.arctan2(a[1]-b[1], a[0]-b[0])
-    angle = np.abs(radians * 180.0/np.pi)
-    if angle > 180.0:
-        angle = 360 - angle
-    return angle
+# Load the pre-trained deadlift model.
+model = pickle.load(open('deadlift.pkl', 'rb'))
 
-with open("exercises/deadlifts/calibration/deadlift_angles.txt", "r") as f:
-    calib = json.load(f)
-hip_angle_top_cal = calib.get("hip_angle_top", 154)
-hip_angle_bottom_cal = calib.get("hip_angle_bottom", 58)
-knee_angle_top_cal = calib.get("knee_angle_top", 165)
-knee_angle_bottom_cal = calib.get("knee_angle_bottom", 94)
-
-def process_landmarks(landmarks, tolerance):
-    try:
-        # MediaPipe landmark indices:
-        # Left shoulder: 11, Right shoulder: 12, Left hip: 23, Right hip: 24,
-        # Left knee: 25, Right knee: 26, Left ankle: 27, Right ankle: 28.
-        left_shoulder = [landmarks[11]['x'], landmarks[11]['y']]
-        right_shoulder = [landmarks[12]['x'], landmarks[12]['y']]
-        left_hip = [landmarks[23]['x'], landmarks[23]['y']]
-        right_hip = [landmarks[24]['x'], landmarks[24]['y']]
-        left_knee = [landmarks[25]['x'], landmarks[25]['y']]
-        right_knee = [landmarks[26]['x'], landmarks[26]['y']]
-        left_ankle = [landmarks[27]['x'], landmarks[27]['y']]
-        right_ankle = [landmarks[28]['x'], landmarks[28]['y']]
-    except Exception:
-        return {"error": "Insufficient landmarks data."}
-
-    left_hip_angle = calculate_angle(left_shoulder, left_hip, left_knee)
-    right_hip_angle = calculate_angle(right_shoulder, right_hip, right_knee)
-    hip_angle = (left_hip_angle + right_hip_angle) / 2
-
-    left_knee_angle = calculate_angle(left_hip, left_knee, left_ankle)
-    right_knee_angle = calculate_angle(right_hip, right_knee, right_ankle)
-    knee_angle = (left_knee_angle + right_knee_angle) / 2
-
-    state = exercise_state.get("deadlifts", {"repState": "up", "currentMinHip": None, "correctReps": 0, "incorrectReps": 0, "feedback": ""})
-    rep_state = state.get("repState", "up")
-    current_min_hip = state.get("currentMinHip")
-    correct_reps = state.get("correctReps", 0)
-    incorrect_reps = state.get("incorrectReps", 0)
-    feedback = state.get("feedback", "")
-
-    if rep_state == "up":
-        if hip_angle < (hip_angle_bottom_cal + tolerance):
-            rep_state = "down"
-            current_min_hip = hip_angle
-            feedback = "Descending..."
-    elif rep_state == "down":
-        if current_min_hip is None or hip_angle < current_min_hip:
-            current_min_hip = hip_angle
-        feedback = "Adjust form!" if abs(current_min_hip - hip_angle_bottom_cal) > tolerance else "At bottom"
-        if hip_angle > (hip_angle_top_cal - tolerance):
-            if abs(current_min_hip - hip_angle_bottom_cal) <= tolerance:
-                correct_reps += 1
-                feedback = "Good rep!"
-            else:
-                incorrect_reps += 1
-                feedback = "Incorrect rep! Fix your form."
-            rep_state = "up"
-            current_min_hip = None
-
-    new_state = {
-        "repState": rep_state,
-        "currentMinHip": current_min_hip,
-        "correctReps": correct_reps,
-        "incorrectReps": incorrect_reps,
-        "feedback": feedback
+# Separate state for deadlifts.
+exercise_state = {
+    "deadlifts": {
+        "repCount": 0,
+        "stage": "up",  # start with "up"
+        "feedback": "N/A",
+        "prob": 0.0,
+        "last_update": time.time()
     }
-    exercise_state["deadlifts"] = new_state
-    return new_state
+}
+
+def process_landmarks(landmarks_input, tolerance=0.0, reset_threshold=5.0):
+    """
+    Process the provided landmarks for deadlift analysis.
+    
+    Parameters:
+        landmarks_input (list): List of landmark dictionaries.
+                                Each dictionary should have keys 'x', 'y', 'z', and 'visibility'.
+        tolerance (float): Reserved for any future threshold adjustments.
+        reset_threshold (float): Time (in seconds) after which the rep count resets due to inactivity.
+    
+    Returns:
+        dict: Updated exercise state containing:
+              - repCount: Number of reps counted.
+              - stage: Current stage ("up" or "down").
+              - feedback: Feedback message.
+              - prob: Maximum probability from the model prediction.
+    """
+    try:
+        # Check for inactivity and reset if necessary
+        current_time = time.time()
+        state = exercise_state["deadlifts"]
+        if current_time - state["last_update"] > reset_threshold:
+            print("Long pause detected. Resetting rep count.")
+            state["repCount"] = 0
+
+        # Build the feature vector by flattening each landmark's x, y, z, and visibility values.
+        row = []
+        for lm in landmarks_input:
+            row.extend([
+                lm.get('x', 0),
+                lm.get('y', 0),
+                lm.get('z', 0),
+                lm.get('visibility', 0)
+            ])
+        
+        # Create a DataFrame with one row using the expected column order.
+        X = pd.DataFrame([row], columns=landmarks)
+        
+        # Get model predictions.
+        bodylang_prob = model.predict_proba(X)[0]
+        bodylang_class = model.predict(X)[0]
+
+        # Ensure predicted class is a lowercase string.
+        if not isinstance(bodylang_class, str):
+            bodylang_class = str(bodylang_class)
+        bodylang_class = bodylang_class.lower()
+        max_prob = float(np.max(bodylang_prob))
+
+        # Detailed debug logging.
+        print("---------- Debug Info ----------")
+        print(f"Landmarks row: {row}")
+        print(f"DataFrame columns: {landmarks}")
+        print(f"Probability Array: {bodylang_prob}")
+        print(f"Predicted Class: {bodylang_class}")
+        print(f"Confidence (max probability): {max_prob:.2f}")
+        print(f"Current Stage: {state['stage']}")
+
+        # --- Updated State Logic with Forced Transition ---
+        if bodylang_class == "down" and max_prob > 0.7:
+            if state["stage"] != "down":
+                print("Transitioning stage to 'down' (detected down)")
+            state["stage"] = "down"
+        elif state["stage"] == "up" and bodylang_class == "up" and max_prob < 0.80:
+            print("Forcing transition to 'down' due to lower confidence in 'up'")
+            state["stage"] = "down"
+        elif state["stage"] == "down" and bodylang_class == "up" and max_prob > 0.7:
+            print("Transitioning stage to 'up' and counting rep.")
+            state["stage"] = "up"
+            state["repCount"] += 1
+
+        # Update timestamp after successful detection
+        state["last_update"] = current_time
+
+        # Log final state.
+        print(f"Updated State: {state}")
+        print("---------- End Debug ----------\n")
+        
+        state["prob"] = max_prob
+        state["feedback"] = "N/A"  # You can add additional feedback based on other conditions.
+        
+        return state
+
+    except Exception as e:
+        print("Error in process_landmarks:", e)
+        return {"error": str(e)}

@@ -1,10 +1,10 @@
-# backend/bicep_curls.py
 import numpy as np
-import json
 from state import exercise_state
 
 def calculate_angle(a, b, c):
-    """Calculate the angle (in degrees) at point b given three points a, b, and c."""
+    """
+    Calculate the angle (in degrees) at point b given three points a, b, and c.
+    """
     a, b, c = np.array(a), np.array(b), np.array(c)
     radians = np.arctan2(c[1] - b[1], c[0] - b[0]) - np.arctan2(a[1] - b[1], a[0] - b[0])
     angle = np.abs(radians * 180.0 / np.pi)
@@ -12,41 +12,63 @@ def calculate_angle(a, b, c):
         angle = 360 - angle
     return angle
 
-# Load calibration thresholds (adjust the file path as needed)
-with open("exercises/bicep_curls/calibration/bicep_curl_calibration.txt", "r") as f:
-    calib = json.load(f)
-elbow_top_cal = calib.get("elbow_angle_top", 160)
-elbow_bottom_cal = calib.get("elbow_angle_bottom", 30)
-posture_bottom_cal = calib.get("posture_angle_bottom", 40)
-
-def process_landmarks(landmarks, tolerance):
+def process_landmarks(landmarks, tolerance=0.0):
+    """
+    Process the provided landmarks for bicep curl analysis using a backend state.
+    
+    Expects a dictionary of landmarks where keys are landmark indices and values are dictionaries
+    with 'x' and 'y' coordinates.
+    
+    Returns a dictionary representing the updated exercise state including rep count, stage,
+    feedback, and the average computed angle.
+    """
+    angles = []
+    
+    # Calculate left arm angle (shoulder: 11, elbow: 13, wrist: 15)
     try:
-        # Use MediaPipe landmark indices: 11: left shoulder, 13: left elbow, 15: left wrist, 23: left hip.
-        shoulder = [landmarks[11]['x'], landmarks[11]['y']]
-        elbow = [landmarks[13]['x'], landmarks[13]['y']]
-        wrist = [landmarks[15]['x'], landmarks[15]['y']]
-        hip = [landmarks[23]['x'], landmarks[23]['y']]
-    except Exception:
+        left_shoulder = [landmarks[11]['x'], landmarks[11]['y']]
+        left_elbow = [landmarks[13]['x'], landmarks[13]['y']]
+        left_wrist = [landmarks[15]['x'], landmarks[15]['y']]
+        left_angle = calculate_angle(left_shoulder, left_elbow, left_wrist)
+        angles.append(left_angle)
+    except KeyError:
+        pass
+
+    # Calculate right arm angle (shoulder: 12, elbow: 14, wrist: 16)
+    try:
+        right_shoulder = [landmarks[12]['x'], landmarks[12]['y']]
+        right_elbow = [landmarks[14]['x'], landmarks[14]['y']]
+        right_wrist = [landmarks[16]['x'], landmarks[16]['y']]
+        right_angle = calculate_angle(right_shoulder, right_elbow, right_wrist)
+        angles.append(right_angle)
+    except KeyError:
+        pass
+
+    if not angles:
         return {"error": "Insufficient landmarks data."}
 
-    current_elbow = calculate_angle(shoulder, elbow, wrist)
-    current_posture = calculate_angle(shoulder, elbow, hip)
+    avg_angle = sum(angles) / len(angles)
 
+    # Retrieve the current state for bicep_curls
     state = exercise_state.get("bicep_curls", {"repCount": 0, "stage": "down", "feedback": "N/A"})
     stage = state.get("stage", "down")
     counter = state.get("repCount", 0)
 
-    if current_elbow > (elbow_top_cal - tolerance):
+    # Debug: Log the average angle and current stage
+    print(f"Average Angle: {avg_angle:.2f}°, Current Stage: {stage}")
+
+    # Update stage and count based on bicep curl thresholds
+    if avg_angle > 160:
         stage = "down"
-    if current_elbow < (elbow_bottom_cal + tolerance) and stage == "down":
+    elif avg_angle < 60 and stage == "down":
         stage = "up"
         counter += 1
 
-    posture_feedback = (
-        "Good posture" if stage == "down" and abs(current_posture - posture_bottom_cal) <= tolerance
-        else "Bad posture" if stage == "down" else "N/A"
-    )
-
-    new_state = {"repCount": counter, "stage": stage, "feedback": posture_feedback}
+    new_state = {
+        "repCount": counter,
+        "stage": stage,
+        "feedback": "N/A",
+        "avg_angle": avg_angle
+    }
     exercise_state["bicep_curls"] = new_state
     return new_state

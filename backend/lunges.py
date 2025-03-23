@@ -1,52 +1,55 @@
-# backend/lunges.py
 import numpy as np
-import json
 from state import exercise_state
 
 def calculate_angle(a, b, c):
-    a, b, c = np.array(a), np.array(b), np.array(c)
+    a = np.array(a)
+    b = np.array(b)
+    c = np.array(c)
     radians = np.arctan2(c[1]-b[1], c[0]-b[0]) - np.arctan2(a[1]-b[1], a[0]-b[0])
     angle = np.abs(radians * 180.0 / np.pi)
     if angle > 180.0:
         angle = 360 - angle
     return angle
 
-with open("exercises/lunges/calibration/lunge_calibration.txt", "r") as f:
-    calib = json.load(f)
-knee_top_cal = calib.get("knee_angle_top", 170)
-knee_bottom_cal = calib.get("knee_angle_bottom", 90)
-alignment_top_cal = calib.get("alignment_angle_top", 180)
-alignment_bottom_cal = calib.get("alignment_angle_bottom", 150)
-
 def process_landmarks(landmarks, tolerance):
+    angles = []
+    # Attempt to get left-side landmarks: 23: hip, 25: knee, 27: ankle.
     try:
-        # Use indices: 23: left hip, 25: left knee, 27: left ankle, 11: left shoulder.
-        hip = [landmarks[23]['x'], landmarks[23]['y']]
-        knee = [landmarks[25]['x'], landmarks[25]['y']]
-        ankle = [landmarks[27]['x'], landmarks[27]['y']]
-        shoulder = [landmarks[11]['x'], landmarks[11]['y']]
+        left_hip = [landmarks[23]['x'], landmarks[23]['y']]
+        left_knee = [landmarks[25]['x'], landmarks[25]['y']]
+        left_ankle = [landmarks[27]['x'], landmarks[27]['y']]
+        left_angle = calculate_angle(left_hip, left_knee, left_ankle)
+        angles.append(left_angle)
     except Exception:
+        pass
+
+    # Attempt to get right-side landmarks: 24: hip, 26: knee, 28: ankle.
+    try:
+        right_hip = [landmarks[24]['x'], landmarks[24]['y']]
+        right_knee = [landmarks[26]['x'], landmarks[26]['y']]
+        right_ankle = [landmarks[28]['x'], landmarks[28]['y']]
+        right_angle = calculate_angle(right_hip, right_knee, right_ankle)
+        angles.append(right_angle)
+    except Exception:
+        pass
+
+    if not angles:
         return {"error": "Insufficient landmarks data."}
 
-    current_knee = calculate_angle(hip, knee, ankle)
-    current_alignment = calculate_angle(shoulder, hip, knee)
+    avg_angle = sum(angles) / len(angles)
 
+    # Retrieve the current state for lunges.
     state = exercise_state.get("lunges", {"counter": 0, "stage": "up", "feedback": "N/A"})
     stage = state.get("stage", "up")
     counter = state.get("counter", 0)
-    posture_feedback = "N/A"
 
-    if stage == "up" and current_knee < (knee_bottom_cal + tolerance):
-        stage = "down"
-    elif stage == "down" and current_knee > (knee_top_cal - tolerance):
+    # New lunges logic using fixed thresholds.
+    if avg_angle > 160:
         stage = "up"
+    elif avg_angle < 100 and stage == "up":
+        stage = "down"
         counter += 1
 
-    if stage == "down":
-        posture_feedback = "Good posture" if abs(current_alignment - alignment_bottom_cal) <= tolerance else "Bad posture"
-    else:
-        posture_feedback = "N/A"
-
-    new_state = {"counter": counter, "stage": stage, "feedback": posture_feedback}
+    new_state = {"counter": counter, "stage": stage, "feedback": "N/A"}
     exercise_state["lunges"] = new_state
     return new_state

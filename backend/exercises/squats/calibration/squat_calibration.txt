@@ -1,9 +1,0 @@
-{
-    "knee_angle_top": 174.18026189181828,
-    "trunk_angle_top": 176.2079268005983,
-    "knee_angle_mid": 63.729186700238394,
-    "trunk_angle_mid": 75.68116196048244,
-    "knee_angle_bottom": 31.027486640759538,
-    "trunk_angle_bottom": 42.82431081836094,
-    "rep_count": 3
-}

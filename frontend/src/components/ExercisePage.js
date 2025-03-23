@@ -138,12 +138,12 @@ const ExercisePage = () => {
         // Update previous landmarks.
         prevLandmarksRef.current = results.poseLandmarks;
 
-        fetch(`https://urbanfit-ddkt.onrender.com/landmarks/${exerciseName}`, {
+        // Send landmark data to backend for rep counting.
+        fetch(`http://localhost:8000/landmarks/${exerciseName}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ landmarks: results.poseLandmarks })
         })
-        
           .then((res) => res.json())
           .then((data) => {
             // Preserve original logic: backend should return counter, repState, etc.
@@ -204,49 +204,22 @@ const ExercisePage = () => {
       </div>
       
       <div className="stats-container">
-        {exerciseName === "deadlifts" ? (
-          <>
-            <div className="stat-box">
-              <h3>Correct Reps</h3>
-              <p>{repData.correctReps || 0}</p>
-            </div>
-            <div className="stat-box">
-              <h3>Incorrect Reps</h3>
-              <p>{repData.incorrectReps || 0}</p>
-            </div>
-            <div className="stat-box">
-              <h3>Stage</h3>
-              <p>{repData.repState || repData.stage}</p>
-            </div>
-            <div className="stat-box">
-              <h3>Feedback</h3>
-              <p>{repData.feedback}</p>
-            </div>
-            <div className="stat-box">
-              <h3>Lighting</h3>
-              <p>{repData.lightingStatus}</p>
-            </div>
-          </>
-        ) : (
-          <>
-            <div className="stat-box">
-              <h3>Rep Counter</h3>
-              <p>{repData.counter || repData.repCount || 0}</p>
-            </div>
-            <div className="stat-box">
-              <h3>Stage</h3>
-              <p>{repData.stage}</p>
-            </div>
-            <div className="stat-box">
-              <h3>Feedback</h3>
-              <p>{repData.feedback}</p>
-            </div>
-            <div className="stat-box">
-              <h3>Lighting</h3>
-              <p>{repData.lightingStatus}</p>
-            </div>
-          </>
-        )}
+        <div className="stat-box">
+          <h3>Rep Counter</h3>
+          <p>{repData.counter || repData.repCount || 0}</p>
+        </div>
+        <div className="stat-box">
+          <h3>Stage</h3>
+          <p>{repData.repState || repData.stage}</p>
+        </div>
+        <div className="stat-box">
+          <h3>Feedback</h3>
+          <p>{repData.feedback}</p>
+        </div>
+        <div className="stat-box">
+          <h3>Lighting</h3>
+          <p>{repData.lightingStatus}</p>
+        </div>
         <div className="stat-box">
           <h3>Set</h3>
           <p>{currentSet} / {totalSets}</p>

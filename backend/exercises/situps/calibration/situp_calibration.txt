@@ -1,5 +1,0 @@
-{
-    "situp_angle_top": 119.61669574878147,
-    "situp_angle_bottom": 75.39513363485548,
-    "posture_angle_bottom": 75.39513363485548
-}

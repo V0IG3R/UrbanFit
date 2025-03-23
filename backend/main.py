@@ -1,7 +1,8 @@
-# backend/main.py
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
+
+# Import the updated process_landmarks functions from the new code files.
 from bicep_curls import process_landmarks as process_bicep_curls
 from deadlifts import process_landmarks as process_deadlifts
 from lunges import process_landmarks as process_lunges
@@ -14,7 +15,7 @@ app = FastAPI(title="UrbanFit: Innovative Exercise Analysis API")
 # Enable CORS so that the frontend can make requests to the backend.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://urbanfit2.netlify.app"],  # Or "*" for testing, but restrict for production.
+    allow_origins=["*"],  # In production, restrict this to your domain.
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -31,6 +32,7 @@ async def process_exercise_landmarks(exercise_name: str, request: Request, toler
     if not landmarks:
         return JSONResponse({"error": "No landmarks provided"}, status_code=400)
     
+    # Route the processing to the corresponding module.
     if exercise_name == "bicep_curls":
         result = process_bicep_curls(landmarks, tolerance)
     elif exercise_name == "deadlifts":
@@ -43,6 +45,7 @@ async def process_exercise_landmarks(exercise_name: str, request: Request, toler
         result = process_situps(landmarks, tolerance)
     elif exercise_name == "squats":
         result = process_squats(landmarks, tolerance)
+
     else:
         return JSONResponse({"error": "Exercise not found"}, status_code=404)
     

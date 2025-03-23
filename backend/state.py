@@ -28,6 +28,14 @@ class ExerciseStateWrapper:
         self._state[key] = value
         self._last_reset[key] = time.time()
 
+    def reset_exercise(self, key):
+        """
+        Force a reset of the state for a given exercise.
+        This can be called when a page loads.
+        """
+        self._state[key] = {"repCount": 0, "stage": "down", "feedback": "N/A"}
+        self._last_reset[key] = time.time()
+
     def clear(self):
         self._state.clear()
         self._last_reset.clear()
